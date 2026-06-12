@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Конструктор QR-меню</title>
+  <meta name="description" content="Создайте аккуратное QR-меню для кафе, ресторанов и небольших заведений." />
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <style>
+    :root {
+      --bg: #0c0f14;
+      --panel: rgba(255,255,255,.08);
+      --panel-2: rgba(255,255,255,.12);
+      --text: #f7f2e9;
+      --muted: rgba(247,242,233,.68);
+      --accent: #d9a441;
+      --accent-2: #ffdf8a;
+      --danger: #ff6b6b;
+      --line: rgba(255,255,255,.12);
+      --shadow: 0 24px 80px rgba(0,0,0,.35);
+      --radius: 24px;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(217,164,65,.26), transparent 34%),
+        radial-gradient(circle at top right, rgba(88,118,255,.16), transparent 28%),
+        linear-gradient(135deg, #080a0e 0%, #101622 100%);
+      min-height: 100vh;
+    }
+    button, input, textarea, select { font: inherit; }
+    .app { max-width: 1440px; margin: 0 auto; padding: 28px; }
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .logo {
+      width: 48px; height: 48px; border-radius: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #111; display: grid; place-items: center; font-weight: 900;
+      box-shadow: 0 12px 40px rgba(217,164,65,.32);
+    }
+    h1 { margin: 0; font-size: clamp(30px, 4vw, 56px); letter-spacing: -.06em; line-height: .92; }
+    .subtitle { color: var(--muted); margin: 10px 0 0; max-width: 760px; line-height: 1.55; }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+    .grid { display: grid; grid-template-columns: minmax(360px, 520px) 1fr; gap: 22px; align-items: start; }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      box-shadow: var(--shadow); backdrop-filter: blur(18px); overflow: hidden;
+    }
+    .card-head { padding: 20px 20px 14px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    .card-head h2 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
+    .card-body { padding: 20px; }
+    .tabs { display: flex; gap: 8px; padding: 8px; background: rgba(0,0,0,.18); border-radius: 18px; flex-wrap: wrap; }
+    .tab { border: 0; padding: 10px 12px; border-radius: 13px; color: var(--muted); background: transparent; cursor: pointer; transition: .2s; }
+    .tab.active { background: var(--panel-2); color: var(--text); }
+    .section { display: none; }
+    .section.active { display: block; animation: fade .22s ease; }
+    @keyframes fade { from {opacity:.2; transform: translateY(5px)} to {opacity:1; transform: translateY(0)} }
+    label { display: block; margin: 14px 0 7px; color: var(--muted); font-size: 13px; }
+    input, textarea, select {
+      width: 100%; border: 1px solid var(--line); background: rgba(0,0,0,.25); color: var(--text);
+      padding: 13px 14px; border-radius: 16px; outline: none; transition: .2s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: rgba(217,164,65,.7); box-shadow: 0 0 0 4px rgba(217,164,65,.11); }
+    textarea { min-height: 84px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn {
+      border: 0; color: #121212; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      padding: 12px 16px; border-radius: 16px; font-weight: 800; cursor: pointer;
+      box-shadow: 0 12px 30px rgba(217,164,65,.22); transition: .18s; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.04); }
+    .btn.secondary { background: rgba(255,255,255,.09); color: var(--text); box-shadow: none; border: 1px solid var(--line); }
+    .btn.danger { background: rgba(255,107,107,.14); color: #ffd6d6; border: 1px solid rgba(255,107,107,.28); box-shadow: none; }
+    .btn.small { padding: 9px 11px; border-radius: 12px; font-size: 13px; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .category-box, .item-box { border: 1px solid var(--line); background: rgba(0,0,0,.18); border-radius: 18px; padding: 14px; margin-bottom: 14px; }
+    .category-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 10px; }
+    .category-title { font-weight: 800; }
+    .item-box { background: rgba(255,255,255,.045); }
+    .muted { color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .preview-wrap { position: sticky; top: 20px; }
+    .phone {
+      width: min(420px, 100%); margin: 0 auto; border-radius: 42px; padding: 12px;
+      background: linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.04));
+      border: 1px solid rgba(255,255,255,.18); box-shadow: var(--shadow);
+    }
+    .screen {
+      min-height: 720px; max-height: 820px; overflow: auto; border-radius: 32px; background: #fff7eb; color: #1f1b16;
+      scrollbar-width: thin;
+    }
+    .menu-cover { padding: 34px 24px 24px; color: white; background: linear-gradient(135deg, #151515, #3b2b13); position: relative; overflow: hidden; }
+    .menu-cover:after { content:""; position:absolute; inset:auto -80px -120px auto; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,.09); }
+    .menu-logo { width: 64px; height: 64px; border-radius: 20px; background: rgba(255,255,255,.15); display:grid; place-items:center; font-size: 30px; margin-bottom: 16px; }
+    .menu-cover h3 { margin: 0; font-size: 32px; letter-spacing: -.05em; }
+    .menu-cover p { margin: 8px 0 0; color: rgba(255,255,255,.76); line-height: 1.45; }
+    .info-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+    .pill { padding: 8px 10px; border-radius: 999px; background: rgba(255,255,255,.14); color: rgba(255,255,255,.86); font-size: 12px; }
+    .menu-body { padding: 22px; }
+    .cat-preview { margin-bottom: 26px; }
+    .cat-preview h4 { margin: 0 0 14px; font-size: 20px; letter-spacing: -.03em; display:flex; align-items:center; gap:10px; }
+    .cat-preview h4:after { content:""; height:1px; flex:1; background: rgba(0,0,0,.12); }
+    .dish { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 14px 0; border-bottom: 1px dashed rgba(0,0,0,.14); }
+    .dish:last-child { border-bottom: 0; }
+    .dish-title { font-weight: 800; }
+    .dish-desc { color: rgba(31,27,22,.63); margin-top: 4px; font-size: 13px; line-height: 1.35; }
+    .price { font-weight: 900; color: #8b5d0b; }
+    .badge { font-size: 11px; padding: 4px 7px; border-radius: 999px; background: rgba(139,93,11,.1); color:#7a520a; margin-left: 6px; }
+    .footer-menu { padding: 24px; text-align:center; color: rgba(31,27,22,.55); font-size: 12px; }
+    .qr-box { display:grid; place-items:center; padding: 18px; background: white; border-radius: 20px; margin-top: 12px; min-height: 220px; }
+    #qrCanvas canvas, #qrCanvas img { max-width: 210px; width: 100%; height: auto; }
+    .notice { border: 1px solid rgba(217,164,65,.26); background: rgba(217,164,65,.08); color: #ffe8b6; padding: 12px 14px; border-radius: 16px; font-size: 13px; line-height: 1.45; margin-bottom: 14px; }
+    .empty { padding: 18px; border: 1px dashed var(--line); border-radius: 18px; text-align: center; color: var(--muted); }
+    .theme-options { display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .sticker-preview { width: 64px; height: 64px; border-radius: 18px; background: rgba(255,255,255,.08); border: 1px solid var(--line); display:grid; place-items:center; overflow:hidden; font-size:32px; margin-top:10px; }
+    .sticker-preview img { width:100%; height:100%; object-fit:cover; }
+    .theme { padding: 12px; border: 1px solid var(--line); border-radius: 16px; cursor:pointer; background: rgba(255,255,255,.05); }
+    .theme.active { border-color: rgba(217,164,65,.8); box-shadow: 0 0 0 4px rgba(217,164,65,.12); }
+    .swatch { height: 42px; border-radius: 12px; margin-bottom: 8px; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(100px); background: #10141b; color: var(--text); padding: 12px 16px; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); opacity: 0; transition: .25s; z-index: 20; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    @media (max-width: 980px) {
+      .hero { align-items: flex-start; flex-direction: column; }
+      .hero-actions { justify-content: flex-start; }
+      .grid { grid-template-columns: 1fr; }
+      .preview-wrap { position: static; }
+      .screen { max-height: none; }
+    }
+    @media (max-width: 560px) {
+      .app { padding: 16px; }
+      .row, .theme-options { grid-template-columns: 1fr; }
+      .card-head { flex-direction: column; align-items: flex-start; }
+      .hero-actions, .actions { width: 100%; }
+      .btn { width: 100%; }
+    }
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="hero">
+      <div>
+        <div class="brand">
+          <div class="logo">QR</div>
+          <div>
+            <h1>Конструктор QR-меню</h1>
+            <p class="subtitle">Создайте красивое цифровое меню, экспортируйте его в отдельный HTML-файл и сгенерируйте QR-код для кафе, ресторана или небольшого заведения.</p>
+          </div>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button class="btn secondary" id="loadDemoBtn">Загрузить демо</button>
+        <button class="btn danger" id="resetBtn">Сбросить</button>
+        <button class="btn" id="exportBtn">Экспорт HTML-меню</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <div class="card-head">
+          <h2>Конструктор</h2>
+          <div class="tabs">
+            <button class="tab active" data-tab="business">Заведение</button>
+            <button class="tab" data-tab="menu">Меню</button>
+            <button class="tab" data-tab="theme">Стиль</button>
+            <button class="tab" data-tab="qr">QR</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="section active" id="business">
+            <div class="notice">Все данные сохраняются в вашем браузере. Экспортируйте готовое меню в HTML, загрузите его на любой бесплатный хостинг, затем вставьте ссылку во вкладке QR.</div>
+            <label>Название заведения</label>
+            <input id="businessName" placeholder="Moon Cafe" />
+            <label>Краткое описание</label>
+            <textarea id="businessDescription" placeholder="Свежий кофе, домашние десерты и завтраки весь день."></textarea>
+            <div class="row">
+              <div>
+                <label>Валюта</label>
+                <input id="currency" placeholder="$" />
+              </div>
+              <div>
+                <label>Стикер / логотип</label>
+                <select id="logoMode">
+                  <option value="emoji">Эмодзи</option>
+                  <option value="image">Ссылка на картинку</option>
+                  <option value="upload">Загрузить картинку</option>
+                  <option value="none">Без стикера</option>
+                </select>
+              </div>
+            </div>
+            <div id="logoControls">
+              <label id="logoEmojiLabel">Эмодзи стикера</label>
+              <input id="logo" placeholder="☕" />
+              <label id="logoUrlLabel">Ссылка на картинку для стикера</label>
+              <input id="logoImageUrl" placeholder="https://example.com/logo.png" />
+              <label id="logoUploadLabel">Загрузить картинку с компьютера</label>
+              <input id="logoUpload" type="file" accept="image/*" />
+              <div class="actions">
+                <button class="btn secondary small" id="clearLogoBtn" type="button">Убрать стикер</button>
+              </div>
+              <div class="sticker-preview" id="stickerPreview"></div>
+            </div>
+            <label>Адрес</label>
+            <input id="address" placeholder="123 Main Street" />
+            <div class="row">
+              <div>
+                <label>Телефон</label>
+                <input id="phone" placeholder="+1 555 000 000" />
+              </div>
+              <div>
+                <label>Время работы</label>
+                <input id="hours" placeholder="Mon–Sun, 09:00–22:00" />
+              </div>
+            </div>
+            <label>Instagram / сайт</label>
+            <input id="social" placeholder="@mooncafe" />
+          </div>
+
+          <div class="section" id="menu">
+            <div id="categories"></div>
+            <div class="actions">
+              <button class="btn secondary" id="addCategoryBtn">+ Добавить категорию</button>
+              <button class="btn" id="addSampleBtn">+ Добавить примеры блюд</button>
+            </div>
+          </div>
+
+          <div class="section" id="theme">
+            <label>Выберите стиль</label>
+            <div class="theme-options" id="themeOptions"></div>
+            <div class="row">
+              <div>
+                <label>Основной цвет</label>
+                <input id="primaryColor" type="color" value="#3b2b13" />
+              </div>
+              <div>
+                <label>Акцентный цвет</label>
+                <input id="accentColor" type="color" value="#8b5d0b" />
+              </div>
+            </div>
+          </div>
+
+          <div class="section" id="qr">
+            <label>Ссылка на опубликованное меню</label>
+            <input id="menuUrl" placeholder="https://your-menu-link.com" />
+            <div class="actions">
+              <button class="btn" id="generateQrBtn">Сгенерировать QR</button>
+              <button class="btn secondary" id="downloadQrBtn">Скачать QR PNG</button>
+              <button class="btn secondary" id="printQrBtn">Печать QR</button>
+            </div>
+            <div class="qr-box" id="printArea">
+              <div style="text-align:center; color:#111; width:100%;">
+                <div style="font-weight:900; font-size:22px; margin-bottom:8px;">Сканируйте меню</div>
+                <div id="qrCanvas"></div>
+                <div id="qrCaption" style="font-size:13px; color:#555; margin-top:10px;"></div>
+              </div>
+            </div>
+            <p class="muted">Совет: экспортируйте HTML-меню, загрузите его на Netlify Drop, GitHub Pages или Vercel, затем сгенерируйте QR-код для этой ссылки.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="preview-wrap">
+        <div class="card">
+          <div class="card-head">
+            <h2>Предпросмотр</h2>
+            <button class="btn secondary small" id="printMenuBtn">Печать / сохранить PDF</button>
+          </div>
+          <div class="card-body">
+            <div class="phone">
+              <div class="screen" id="menuPreview"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const stateKey = 'qr-menu-builder-state-v1';
+    let state = {
+      businessName: 'Moon Cafe',
+      businessDescription: 'Свежий кофе, домашние десерты и завтраки весь день в уютной атмосфере.',
+      currency: '$', logo: '☕', address: '123 Main Street', phone: '+1 555 000 000', hours: 'Mon–Sun, 09:00–22:00', social: '@mooncafe',
+      primaryColor: '#3b2b13', accentColor: '#8b5d0b', menuUrl: '',
+      categories: [
+        { name: 'Кофе', items: [
+          { name: 'Эспрессо', desc: 'Rich classic espresso shot.', price: '3', badge: 'Хит' },
+          { name: 'Cappuccino', desc: 'Эспрессо, steamed milk and soft foam.', price: '4.5', badge: '' }
+        ]},
+        { name: 'Завтраки', items: [
+          { name: 'Avocado Toast', desc: 'Sourdough, avocado, egg and greens.', price: '8', badge: 'Новинка' }
+        ]}
+      ]
+    };
+
+    const themes = [
+      {name:'Кофе Gold', primary:'#3b2b13', accent:'#8b5d0b', swatch:'linear-gradient(135deg,#151515,#3b2b13,#d9a441)'},
+      {name:'Fresh Green', primary:'#12352c', accent:'#1f8a5b', swatch:'linear-gradient(135deg,#0e1f1a,#12352c,#74d99f)'},
+      {name:'Wine Red', primary:'#3a111b', accent:'#a5324a', swatch:'linear-gradient(135deg,#14070a,#3a111b,#e26b86)'},
+      {name:'Ocean Blue', primary:'#102b46', accent:'#2879b9', swatch:'linear-gradient(135deg,#07131f,#102b46,#7fd7ff)'},
+      {name:'Minimal Black', primary:'#111111', accent:'#555555', swatch:'linear-gradient(135deg,#000,#222,#777)'},
+      {name:'Soft Beige', primary:'#7a5832', accent:'#b9823d', swatch:'linear-gradient(135deg,#fff2dc,#c99b61,#7a5832)'}
+    ];
+
+    function escapeHTML(str = '') {
+      return String(str).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
+
+    function toast(msg) {
+      const el = $('toast'); el.textContent = msg; el.classList.add('show');
+      clearTimeout(window.toastTimer); window.toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+    }
+
+    function save() { localStorage.setItem(stateKey, JSON.stringify(state)); }
+    function load() { try { const raw = localStorage.getItem(stateKey); if (raw) state = {...state, ...JSON.parse(raw)}; } catch(e) {} }
+
+    function bindInputs() {
+      ['businessName','businessDescription','currency','logo','logoMode','logoImageUrl','address','phone','hours','social','primaryColor','accentColor','menuUrl'].forEach(id => {
+        const input = $(id); input.value = state[id] || '';
+        input.addEventListener('input', () => { state[id] = input.value; save(); renderAll(); });
+      });
+    }
+
+    function renderThemes() {
+      $('themeOptions').innerHTML = themes.map((t, i) => `
+        <div class="theme ${state.primaryColor===t.primary && state.accentColor===t.accent ? 'active':''}" data-theme="${i}">
+          <div class="swatch" style="background:${t.swatch}"></div>
+          <div style="font-weight:800;font-size:13px;">${t.name}</div>
+        </div>
+      `).join('');
+      document.querySelectorAll('.theme').forEach(el => el.addEventListener('click', () => {
+        const t = themes[Number(el.dataset.theme)];
+        state.primaryColor = t.primary; state.accentColor = t.accent;
+        $('primaryColor').value = t.primary; $('accentColor').value = t.accent;
+        save(); renderAll();
+      }));
+    }
+
+    function currentLogoHTML(sizeClass = 'menu-logo') {
+      const mode = state.logoMode || 'emoji';
+      if (mode === 'none') return '';
+      if (mode === 'emoji') {
+        const value = (state.logo || '').trim();
+        return value ? `<div class="${sizeClass}">${escapeHTML(value)}</div>` : '';
+      }
+      const src = mode === 'upload' ? state.logoImageData : state.logoImageUrl;
+      if (!src) return '';
+      return `<div class="${sizeClass}"><img src="${escapeHTML(src)}" alt="Логотип" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>`;
+    }
+
+    function renderLogoControls() {
+      const mode = state.logoMode || 'emoji';
+      const logoInput = $('logo');
+      const urlInput = $('logoImageUrl');
+      const uploadInput = $('logoUpload');
+      const emojiLabel = $('logoEmojiLabel');
+      const urlLabel = $('logoUrlLabel');
+      const uploadLabel = $('logoUploadLabel');
+      logoInput.style.display = emojiLabel.style.display = mode === 'emoji' ? 'block' : 'none';
+      urlInput.style.display = urlLabel.style.display = mode === 'image' ? 'block' : 'none';
+      uploadInput.style.display = uploadLabel.style.display = mode === 'upload' ? 'block' : 'none';
+      const preview = $('stickerPreview');
+      const html = currentLogoHTML('sticker-preview');
+      preview.innerHTML = html ? html.replace('class="sticker-preview"', 'class=""') : '<span style="font-size:12px;color:rgba(247,242,233,.55);text-align:center;padding:8px;">Стикер выключен</span>';
+    }
+
+    function renderCategories() {
+      const root = $('categories');
+      if (!state.categories.length) { root.innerHTML = '<div class="empty">Категорий пока нет. Добавьте первую категорию.</div>'; return; }
+      root.innerHTML = state.categories.map((cat, ci) => `
+        <div class="category-box">
+          <div class="category-top">
+            <div class="category-title">Категория ${ci + 1}</div>
+            <button class="btn danger small" data-remove-cat="${ci}">Удалить</button>
+          </div>
+          <label>Название категории</label>
+          <input value="${escapeHTML(cat.name)}" data-cat-name="${ci}" />
+          <div style="height:12px"></div>
+          ${cat.items.map((item, ii) => `
+            <div class="item-box">
+              <div class="category-top">
+                <div class="category-title">Позиция ${ii + 1}</div>
+                <button class="btn danger small" data-remove-item="${ci}:${ii}">Удалить</button>
+              </div>
+              <label>Название</label><input value="${escapeHTML(item.name)}" data-item-field="${ci}:${ii}:name" />
+              <label>Описание</label><textarea data-item-field="${ci}:${ii}:desc">${escapeHTML(item.desc)}</textarea>
+              <div class="row">
+                <div><label>Цена</label><input value="${escapeHTML(item.price)}" data-item-field="${ci}:${ii}:price" /></div>
+                <div><label>Бейдж</label><input value="${escapeHTML(item.badge)}" data-item-field="${ci}:${ii}:badge" placeholder="Хит / Веган / Новинка" /></div>
+              </div>
+            </div>
+          `).join('')}
+          <button class="btn secondary small" data-add-item="${ci}">+ Add item</button>
+        </div>
+      `).join('');
+
+      root.querySelectorAll('[data-cat-name]').forEach(input => input.addEventListener('input', e => {
+        state.categories[Number(e.target.dataset.catName)].name = e.target.value; save(); renderPreview();
+      }));
+      root.querySelectorAll('[data-item-field]').forEach(input => input.addEventListener('input', e => {
+        const [ci, ii, field] = e.target.dataset.itemField.split(':');
+        state.categories[ci].items[ii][field] = e.target.value; save(); renderPreview();
+      }));
+      root.querySelectorAll('[data-add-item]').forEach(btn => btn.addEventListener('click', e => {
+        state.categories[Number(e.target.dataset.addItem)].items.push({name:'Новинка item', desc:'Краткое описание.', price:'0', badge:''}); save(); renderAll();
+      }));
+      root.querySelectorAll('[data-remove-item]').forEach(btn => btn.addEventListener('click', e => {
+        const [ci, ii] = e.target.dataset.removeItem.split(':'); state.categories[ci].items.splice(ii, 1); save(); renderAll();
+      }));
+      root.querySelectorAll('[data-remove-cat]').forEach(btn => btn.addEventListener('click', e => {
+        state.categories.splice(Number(e.target.dataset.removeCat), 1); save(); renderAll();
+      }));
+    }
+
+    function menuHTML(docMode = false) {
+      const css = docMode ? `<style>
+        *{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff7eb;color:#1f1b16}.menu-cover{padding:42px 24px 30px;color:white;background:linear-gradient(135deg,${state.primaryColor},#111);position:relative;overflow:hidden}.menu-cover:after{content:"";position:absolute;inset:auto -80px -120px auto;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.09)}.menu-logo{width:70px;height:70px;border-radius:22px;background:rgba(255,255,255,.15);display:grid;place-items:center;font-size:34px;margin-bottom:18px}.menu-cover h1{margin:0;font-size:38px;letter-spacing:-.05em}.menu-cover p{margin:8px 0 0;color:rgba(255,255,255,.76);line-height:1.45}.info-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.pill{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.14);color:rgba(255,255,255,.86);font-size:12px}.menu-body{padding:24px;max-width:760px;margin:0 auto}.cat-preview{margin-bottom:30px}.cat-preview h2{margin:0 0 14px;font-size:23px;letter-spacing:-.03em;display:flex;align-items:center;gap:10px}.cat-preview h2:after{content:"";height:1px;flex:1;background:rgba(0,0,0,.12)}.dish{display:grid;grid-template-columns:1fr auto;gap:12px;padding:15px 0;border-bottom:1px dashed rgba(0,0,0,.14)}.dish-title{font-weight:850}.dish-desc{color:rgba(31,27,22,.63);margin-top:4px;font-size:14px;line-height:1.4}.price{font-weight:900;color:${state.accentColor}}.badge{font-size:11px;padding:4px 7px;border-radius:999px;background:rgba(139,93,11,.1);color:${state.accentColor};margin-left:6px}.footer-menu{padding:24px;text-align:center;color:rgba(31,27,22,.55);font-size:12px}@media(max-width:520px){.menu-cover h1{font-size:32px}.dish{grid-template-columns:1fr}.price{margin-top:-4px}}
+      </style>` : '';
+      const titleTag = docMode ? 'h1' : 'h3';
+      const catTag = docMode ? 'h2' : 'h4';
+      const content = `
+        <div class="menu-cover" style="background:linear-gradient(135deg, ${escapeHTML(state.primaryColor)}, #111);">
+          ${currentLogoHTML('menu-logo')}
+          <${titleTag}>${escapeHTML(state.businessName || 'Ваше кафе')}</${titleTag}>
+          <p>${escapeHTML(state.businessDescription || '')}</p>
+          <div class="info-pills">
+            ${state.address ? `<span class="pill">📍 ${escapeHTML(state.address)}</span>` : ''}
+            ${state.phone ? `<span class="pill">☎ ${escapeHTML(state.phone)}</span>` : ''}
+            ${state.hours ? `<span class="pill">🕒 ${escapeHTML(state.hours)}</span>` : ''}
+            ${state.social ? `<span class="pill">🔗 ${escapeHTML(state.social)}</span>` : ''}
+          </div>
+        </div>
+        <div class="menu-body">
+          ${state.categories.map(cat => `
+            <section class="cat-preview">
+              <${catTag}>${escapeHTML(cat.name)}</${catTag}>
+              ${cat.items.map(item => `
+                <div class="dish">
+                  <div>
+                    <div class="dish-title">${escapeHTML(item.name)}${item.badge ? `<span class="badge">${escapeHTML(item.badge)}</span>` : ''}</div>
+                    <div class="dish-desc">${escapeHTML(item.desc)}</div>
+                  </div>
+                  <div class="price">${escapeHTML(state.currency || '$')}${escapeHTML(item.price)}</div>
+                </div>
+              `).join('')}
+            </section>
+          `).join('')}
+        </div>
+        <div class="footer-menu">Создано в Конструкторе QR-меню</div>`;
+      return docMode ? `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHTML(state.businessName || 'Меню')}</title>${css}</head><body>${content}</body></html>` : content;
+    }
+
+    function renderPreview() { $('menuPreview').innerHTML = menuHTML(false); }
+    function renderAll() { renderCategories(); renderThemes(); renderLogoControls(); renderPreview(); }
+
+    function drawQrToCanvas(text, canvas, modules) {
+      const ctx = canvas.getContext('2d');
+      const size = 220;
+      const margin = 12;
+      const count = modules.getModuleCount();
+      const cell = Math.floor((size - margin * 2) / count);
+      const qrSize = cell * count;
+      const offset = Math.floor((size - qrSize) / 2);
+      canvas.width = size;
+      canvas.height = size;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = '#111111';
+      for (let r = 0; r < count; r++) {
+        for (let c = 0; c < count; c++) {
+          if (modules.isDark(r, c)) ctx.fillRect(offset + c * cell, offset + r * cell, cell, cell);
+        }
+      }
+    }
+
+    function generateQR() {
+      const url = state.menuUrl.trim();
+      const root = $('qrCanvas');
+      root.innerHTML = '';
+      $('qrCaption').textContent = url || 'Сначала вставьте ссылку на опубликованное меню';
+      if (!url) return toast('Сначала вставьте ссылку на опубликованное меню');
+
+      // Основная библиотека: qrcode-generator. Резервная: qrcode npm CDN.
+      if (window.qrcode) {
+        try {
+          const qr = qrcode(0, 'M');
+          qr.addData(url);
+          qr.make();
+          const canvas = document.createElement('canvas');
+          drawQrToCanvas(url, canvas, qr);
+          root.appendChild(canvas);
+          toast('QR-код сгенерирован');
+          return;
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      if (window.QRCode && window.QRCode.toCanvas) {
+        window.QRCode.toCanvas(url, { width: 220, margin: 2, color: { dark: '#111111', light: '#ffffff' } }, function (err, canvas) {
+          if (err) { console.error(err); toast('Не удалось сгенерировать QR-код'); return; }
+          root.appendChild(canvas); toast('QR-код сгенерирован');
+        });
+        return;
+      }
+
+      toast('Библиотека QR-кодов не загрузилась. Проверьте интернет и обновите страницу.');
+    }
+
+    function download(filename, text) {
+      const blob = new Blob([text], {type: 'text/html;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function initEvents() {
+      $('logoUpload').addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) return toast('Выберите файл изображения');
+        const reader = new FileReader();
+        reader.onload = () => {
+          state.logoImageData = reader.result;
+          state.logoMode = 'upload';
+          $('logoMode').value = 'upload';
+          save(); renderAll(); toast('Стикер загружен');
+        };
+        reader.readAsDataURL(file);
+      });
+      $('clearLogoBtn').addEventListener('click', () => {
+        state.logo = '';
+        state.logoImageUrl = '';
+        state.logoImageData = '';
+        state.logoMode = 'none';
+        $('logo').value = '';
+        $('logoImageUrl').value = '';
+        $('logoMode').value = 'none';
+        $('logoUpload').value = '';
+        save(); renderAll(); toast('Стикер убран');
+      });
+      document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active'); $(tab.dataset.tab).classList.add('active');
+      }));
+      $('addCategoryBtn').addEventListener('click', () => { state.categories.push({name:'Новая категория', items:[]}); save(); renderAll(); });
+      $('addSampleBtn').addEventListener('click', () => {
+        state.categories.push({name:'Десерты', items:[{name:'Чизкейк', desc:'Нежный чизкейк с ягодным соусом.', price:'420', badge:'Выбор шефа'}, {name:'Шоколадный брауни', desc:'Теплый брауни с шариком ванильного мороженого.', price:'390', badge:''}]});
+        save(); renderAll();
+      });
+      $('exportBtn').addEventListener('click', () => { download(`${(state.businessName || 'menu').toLowerCase().replace(/[^a-z0-9]+/gi,'-')}.html`, menuHTML(true)); toast('HTML-меню экспортировано'); });
+      $('generateQrBtn').addEventListener('click', generateQR);
+      $('downloadQrBtn').addEventListener('click', () => {
+        const canvas = $('qrCanvas').querySelector('canvas');
+        if (!canvas) return toast('Сначала сгенерируйте QR-код');
+        const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'qr-menu.png'; a.click();
+      });
+      $('printQrBtn').addEventListener('click', () => window.print());
+      $('printMenuBtn').addEventListener('click', () => {
+        const w = window.open('', '_blank'); w.document.write(menuHTML(true)); w.document.close(); setTimeout(() => w.print(), 300);
+      });
+      $('resetBtn').addEventListener('click', () => {
+        if (!confirm('Сбросить все данные?')) return;
+        localStorage.removeItem(stateKey); location.reload();
+      });
+      $('loadDemoBtn').addEventListener('click', () => { localStorage.removeItem(stateKey); location.reload(); });
+    }
+
+    load(); if (!state.logoMode) state.logoMode = state.logo ? 'emoji' : 'none'; bindInputs(); initEvents(); renderAll();
+  </script>
+</body>
+</html>
